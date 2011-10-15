@@ -1,0 +1,112 @@
+name: Transfer
+id: Transfer
+l10n_class: Transfer::L10N
+version: 1.0
+author_name: naoaki.onozaki
+author_link: http://www.zelazny.mydns.jp/
+description: <__trans phrase="Dupulicate,Transfer and Convert Templates, Entries, Pages and Assets.">
+
+applications:
+  cms:
+    list_actions:
+      template:
+        convert_to_global:
+          label: Convert To Global
+          order: 200
+          code: $Transfer::Transfer::App::CMS::_convert_template_global
+          permission: administer
+          condition: $Transfer::Transfer::Util::is_blog_module
+        convert_to_blog:
+          label: Convert To Blog
+          order: 200
+          code: $Transfer::Transfer::App::CMS::_convert_template_blog
+          input: 1
+          input_label: 'You must specify a blog_id to convert the template to a blog template'
+          permission: administer
+          condition: $Transfer::Transfer::Util::is_global_module
+#        convert_to_asset:
+#          label: Convert to Asset
+#          order: 210
+#          code: $Transfer::Transfer::App::CMS::_convert_asset
+#          permission: edit_assets
+#          condition: $Transfer::Transfer::Util::is_index_template
+      entry:
+        convert_to_page:
+          label: Convert to Pages
+          order: 100
+          code: $Transfer::Transfer::App::CMS::_convert_entry_page
+          permit_action:
+            permit_action: create_new_page
+            include_all: 1
+          condition: sub { return MT->instance->blog; }
+        copy_entries:
+          label: Duplicate Entries
+          order: 921
+          code: $Transfer::Transfer::App::CMS::_copy_entries
+          input: 1
+          input_label: 'Input BlogID of Entries copy to.'
+          permit_action:
+            permit_action: create_new_entry
+            include_all: 1
+          condition: sub { return MT->instance->blog; }
+        move_entries:
+          label: Move Entries
+          order: 922
+          code: $Transfer::Transfer::App::CMS::_move_entries
+          input: 1
+          input_label: 'Input BlogID of Entries move for.'
+          permit_action:
+            permit_action: create_new_entry
+            include_all: 1
+          condition: sub { return MT->instance->blog; }
+      page:
+        convert_to_entry:
+          label: Convert to Entries
+          order: 100
+          code: $Transfer::Transfer::App::CMS::_convert_entry_page
+          permit_action:
+            permit_action: create_new_entry
+            include_all: 1
+          condition: sub { return MT->instance->blog; }
+        copy_entries:
+          label: Duplicate Pages
+          order: 921
+          code: $Transfer::Transfer::App::CMS::_copy_entries
+          input: 1
+          input_label: 'Input BlogID of Pages copy to.'
+          permit_action:
+            permit_action: create_new_page
+            include_all: 1
+          condition: sub { return MT->instance->blog; }
+        move_entries:
+          label: Move Pages
+          order: 922
+          code: $Transfer::Transfer::App::CMS::_move_entries
+          input: 1
+          input_label: 'Input BlogID of pages move for.'
+          permit_action:
+            permit_action: create_new_page
+            include_all: 1
+          condition: sub { return MT->instance->blog; }
+#      asset:
+#        copy_assets:
+#          label: Duplicate Assets
+#          order: 921
+#          code: $Transfer::Transfer::App::CMS::_copy_assets
+#          input: 1
+#          input_label: 'Input BlogID of assets copy to.'
+#          permission: upload
+#          condition: sub { return MT->instance->blog; }
+#        move_assets:
+#          label: Move Assets
+#          order: 922
+#          code: $Transfer::Transfer::App::CMS::_move_assets
+#          input: 1
+#          input_label: 'Input BlogID of assets move for.'
+#          permission: upload
+#          condition: sub { return MT->instance->blog; }
+#        convert_to_index:
+#          label: Convert to Index Template
+#          order: 923
+#          code: $Transfer::Transfer::App::CMS::_convert_index
+#          permission: edit_templates
