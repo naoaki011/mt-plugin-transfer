@@ -22,6 +22,7 @@ applications:
           code: $Transfer::Transfer::App::CMS::_convert_template_blog
           input: 1
           input_label: 'You must specify a blog_id to convert the template to a blog template'
+          no_prompt: 1
           permission: administer
           condition: $Transfer::Transfer::Util::is_global_module
 #        convert_to_asset:
@@ -45,6 +46,7 @@ applications:
           code: $Transfer::Transfer::App::CMS::_copy_entries
           input: 1
           input_label: 'Input BlogID of Entries copy to.'
+          no_prompt: 1
           permit_action:
             permit_action: create_new_entry
             include_all: 1
@@ -55,6 +57,7 @@ applications:
           code: $Transfer::Transfer::App::CMS::_move_entries
           input: 1
           input_label: 'Input BlogID of Entries move for.'
+          no_prompt: 1
           permit_action:
             permit_action: create_new_entry
             include_all: 1
@@ -74,6 +77,7 @@ applications:
           code: $Transfer::Transfer::App::CMS::_copy_entries
           input: 1
           input_label: 'Input BlogID of Pages copy to.'
+          no_prompt: 1
           permit_action:
             permit_action: create_new_page
             include_all: 1
@@ -84,6 +88,7 @@ applications:
           code: $Transfer::Transfer::App::CMS::_move_entries
           input: 1
           input_label: 'Input BlogID of pages move for.'
+          no_prompt: 1
           permit_action:
             permit_action: create_new_page
             include_all: 1
@@ -95,6 +100,7 @@ applications:
 #          code: $Transfer::Transfer::App::CMS::_copy_assets
 #          input: 1
 #          input_label: 'Input BlogID of assets copy to.'
+#          no_prompt: 1
 #          permission: upload
 #          condition: sub { return MT->instance->blog; }
 #        move_assets:
@@ -103,6 +109,7 @@ applications:
 #          code: $Transfer::Transfer::App::CMS::_move_assets
 #          input: 1
 #          input_label: 'Input BlogID of assets move for.'
+#          no_prompt: 1
 #          permission: upload
 #          condition: sub { return MT->instance->blog; }
 #        convert_to_index:
