@@ -25,12 +25,12 @@ applications:
           no_prompt: 1
           permission: administer
           condition: $Transfer::Transfer::Util::is_global_module
-#        convert_to_asset:
-#          label: Convert to Asset
-#          order: 210
-#          code: $Transfer::Transfer::App::CMS::_convert_template_asset
-#          permission: edit_assets
-#          condition: $Transfer::Transfer::Util::is_index_template
+        convert_to_asset:
+          label: Convert to Asset
+          order: 210
+          code: $Transfer::Transfer::App::CMS::_convert_template_asset
+          permission: edit_assets
+          condition: $Transfer::Transfer::Util::is_index_template
       entry:
         convert_to_page:
           label: Convert to Pages

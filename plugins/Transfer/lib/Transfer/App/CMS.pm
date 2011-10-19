@@ -15,7 +15,7 @@ sub _convert_template_global {
     if (! is_user_can( $blog, $user, 'edit_templates' ) ) {
         return MT->translate( 'Permission denied.' );
     }
-    use MT::Template;
+    require MT::Template;
     my @templates;
     my @tmpl_ids = $app->param('id');
     if (@tmpl_ids) {
@@ -45,7 +45,7 @@ sub _convert_template_blog {
     if (! is_user_can( $blog, $user, 'edit_templates' ) ) {
         return MT->translate( 'Permission denied.' );
     }
-    use MT::Template;
+    require MT::Template;
     my @templates;
     my @tmpl_ids = $app->param('id');
     if (@tmpl_ids) {
@@ -76,7 +76,9 @@ sub _convert_template_asset {
         return MT->translate( 'Permission denied.' );
     }
     my $converted = 0;
-    use MT::Template;
+    (my $site_path = $blog->site_path) =~ s!\\!/!g;
+    require MT::Asset;
+    require MT::Template;
     my @templates;
     my @tmpl_ids = $app->param('id');
     if (@tmpl_ids) {
@@ -84,13 +86,31 @@ sub _convert_template_asset {
             my $tmpl = MT::Template->load($tmpl_id);
             next unless ($tmpl->type eq 'index');
             next unless ($tmpl->outfile =~ m/\.html?$|\.mtml$|\.tmpl$|\.php$|\.jsp$|\.asp$|\.css$|\.js$/i);
+            my $file = File::Spec->catfile($site_path , $tmpl->outfile);
+            my $basename = File::Basename::basename($file);
+            my $asset_pkg = MT::Asset->handler_for_file($basename);
+            my $ext = ( File::Basename::fileparse( $file, qr/[A-Za-z0-9]+$/ ) )[2];
+            (my $filepath = $file) =~ s!\\!/!g;
+            require LWP::MediaTypes;
+            my $mimetype = LWP::MediaTypes::guess_media_type($filepath);
+            my $obj = $asset_pkg->load({
+                'file_path' => $filepath,
+                'blog_id' => $blog->id,
+            }) || $asset_pkg->new;
+            my $is_new = not $obj->id;
+            $filepath =~ s!$site_path!%r!;
+            $obj->label($tmpl->name) if $is_new;
+            $obj->file_path($filepath);
+            $obj->url($filepath);
+            $obj->blog_id($blog->id);
+            $obj->file_name($basename);
+            $obj->file_ext($ext);
+            $is_new ? $obj->created_by( $app->user->id ) : $obj->modified_by( $app->user->id );
+            $obj->mime_type($mimetype) if $mimetype;
+            $obj->save();
 
-
-
-
-
-#            $converted = 1;
-#            $tmpl->remove;
+            $converted = 1;
+            $tmpl->remove;
         }
     }
     my $redirect_url = $converted
