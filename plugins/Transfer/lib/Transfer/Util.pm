@@ -12,12 +12,20 @@ sub is_blog_module {
     return 1 if $app->param('action_name');
     if ($app->param('filter_key')) {
         my $type = $app->param('filter_key');
-        if ($blog_id && $type && (($type eq 'module_templates') || ($type eq 'widget_templates'))) {
-            return 1;
-        }
-        else {
+        unless ($blog_id && $type && (($type eq 'module_templates') || ($type eq 'widget_templates'))) {
             return 0;
         }
+        }
+    if (($app->mode eq 'view') && (($app->{query}->param('_type') || '') eq 'template')) {
+        my $id = $app->{query}->param('id')
+          or return 0;
+        require MT::Template;
+        my $tmpl = MT::Template->load($id)
+          or return 0;
+        return 0
+          unless (($tmpl->type eq 'custom') || ($tmpl->type eq 'widget'));
+        return 0
+          unless (($tmpl->blog_id == $blog_id) || $blog_id);
     }
     return 1;
 }
@@ -28,12 +36,19 @@ sub is_global_module {
     return 0 if $blog_id;
     if ($app->param('filter_key')) {
         my $type = $app->param('filter_key');
-        if ($type && (($type eq 'module_templates') || ($type eq 'widget_templates'))) {
-            return 1;
-        }
-        else {
-            return 0;
-        }
+        return 0
+          unless ($type && (($type eq 'module_templates') || ($type eq 'widget_templates')));
+    }
+    if (($app->mode eq 'view') && (($app->{query}->param('_type') || '') eq 'template')) {
+        my $id = $app->{query}->param('id')
+          or return 0;
+        require MT::Template;
+        my $tmpl = MT::Template->load($id)
+          or return 0;
+        return 0
+          unless (($tmpl->type eq 'custom') || ($tmpl->type eq 'widget'));
+        return 0
+          unless (($tmpl->blog_id == $blog_id));
     }
     return 1;
 }
@@ -54,12 +69,19 @@ sub is_index_template {
     return 0 unless $blog->id;
     if ($app->param('filter_key')) {
         my $type = $app->param('filter_key');
-        if ($type && ($type eq 'index_templates')) {
-            return 1;
-        }
-        else {
-            return 0;
-        }
+        return 0
+          unless ($type && ($type eq 'index_templates'));
+    }
+    if (($app->mode eq 'view') && (($app->{query}->param('_type') || '') eq 'template')) {
+        my $id = $app->{query}->param('id')
+          or return 0;
+        require MT::Template;
+        my $tmpl = MT::Template->load($id)
+          or return 0;
+        return 0
+          unless ($tmpl->type eq 'index');
+        return 0
+          unless (($tmpl->blog_id == $blog_id));
     }
     return 1;
 }
