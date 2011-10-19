@@ -79,6 +79,7 @@ sub _convert_template_asset {
     (my $site_path = $blog->site_path) =~ s!\\!/!g;
     require MT::Asset;
     require MT::Template;
+    require MT::FileMgr;
     my @templates;
     my @tmpl_ids = $app->param('id');
     if (@tmpl_ids) {
@@ -87,6 +88,9 @@ sub _convert_template_asset {
             next unless ($tmpl->type eq 'index');
             next unless ($tmpl->outfile =~ m/\.html?$|\.mtml$|\.tmpl$|\.php$|\.jsp$|\.asp$|\.css$|\.js$/i);
             my $file = File::Spec->catfile($site_path , $tmpl->outfile);
+            my $fmgr = MT::FileMgr->new( 'Local' )
+              or die MT::FileMgr->errstr;
+            next unless ( $fmgr->exists( $file ) );
             my $basename = File::Basename::basename($file);
             my $asset_pkg = MT::Asset->handler_for_file($basename);
             my $ext = ( File::Basename::fileparse( $file, qr/[A-Za-z0-9]+$/ ) )[2];
