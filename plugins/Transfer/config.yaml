@@ -70,7 +70,7 @@ applications:
           permit_action:
             permit_action: create_new_entry
             include_all: 1
-          condition: sub { return MT->instance->blog; }
+          condition: $Transfer::Transfer::Util::is_blog
         copy_entries:
           label: Duplicate Pages
           order: 921

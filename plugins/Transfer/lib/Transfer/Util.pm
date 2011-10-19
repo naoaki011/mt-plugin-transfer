@@ -81,7 +81,7 @@ sub is_index_template {
         return 0
           unless ($tmpl->type eq 'index');
         return 0
-          unless (($tmpl->blog_id == $blog_id));
+          unless (($tmpl->blog_id == $blog->id));
     }
     return 1;
 }
