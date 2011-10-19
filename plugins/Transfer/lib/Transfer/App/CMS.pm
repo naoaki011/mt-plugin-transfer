@@ -64,6 +64,49 @@ sub _convert_template_blog {
     $app->redirect($app->uri . '?' . $return_args);
 }
 
+sub _convert_template_asset {
+    my $app = MT->instance;
+    my $blog = $app->blog;
+    if (! $blog ) {
+        return MT->translate( 'Invalid request.' );
+    }
+    my $user = $app->user;
+    unless ( ( is_user_can( $blog, $user, 'edit_assets' ) )
+          && ( is_user_can( $blog, $user, 'edit_templates' ) ) ) {
+        return MT->translate( 'Permission denied.' );
+    }
+    my $converted = 0;
+    use MT::Template;
+    my @templates;
+    my @tmpl_ids = $app->param('id');
+    if (@tmpl_ids) {
+        foreach my $tmpl_id (@tmpl_ids) {
+            my $tmpl = MT::Template->load($tmpl_id);
+            next unless ($tmpl->type eq 'index');
+            next unless ($tmpl->outfile =~ m/\.html?$|\.mtml$|\.tmpl$|\.php$|\.jsp$|\.asp$|\.css$|\.js$/i);
+
+
+
+
+
+#            $converted = 1;
+#            $tmpl->remove;
+        }
+    }
+    my $redirect_url = $converted
+                     ? $app->base . $app->uri( mode => 'list',
+                                               args => {
+                                                   _type => 'asset',
+                                                   blog_id => $blog->id,
+                                               } )
+                     : $app->base . $app->uri( mode => 'list_template',
+                                               args => {
+                                                   blog_id => $blog->id,
+                                                   converted => 1,
+                                               } );
+    $app->redirect( $redirect_url );
+}
+
 sub _convert_entry_page {
     my $app = MT->instance;
     my $class = $app->param( '_type' );
@@ -235,20 +278,164 @@ sub _move_entries {
     $app->redirect( $redirect_url );
 }
 
-sub _convert_asset {
-1
-}
-
 sub _copy_assets {
-1
+    my $app = shift;
+    my $class = $app->param( '_type' );
+    return MT->translate( 'Invalid request.' )
+      unless ($class eq 'asset');
+    my $blog = $app->blog
+      or return MT->translate( 'Invalid request.' );
+    my $input = $app->param('itemset_action_input') || '';
+    return MT->translate( 'Invalid request.' ) unless ($input =~ /^\d+$/);
+    my $target_blog = ($input)
+                    ? MT::Blog->load( $input )
+                    : $app->blog;
+    return MT->translate( 'Target required.' ) unless $target_blog;
+    my $user = $app->user;
+    unless ( is_user_can( $target_blog, $user, 'upload' )) {
+        return MT->translate( 'Permission denied.' );
+    }
+    my $plugin = MT->component( 'Transfer' );
+    my @tl = &offset_time_list( time, $target_blog );
+    my $ts = sprintf "%04d%02d%02d%02d%02d%02d", $tl[ 5 ] + 1900, $tl[ 4 ] + 1, @tl[ 3, 2, 1, 0 ];
+    my @asset_ids = $app->param( 'id' );
+    for my $asset_id ( @asset_ids ) {
+        my $asset = MT->model( 'asset' )->load( { id => $asset_id } );
+        if ( $asset ) {
+
+# File‚à•¡»‚·‚é
+#
+
+            my @tags = $asset->get_tags;
+            my $clone = $asset->clone;
+            $clone->label( $plugin->translate('Copy of [_1]', $asset->label) )
+              if ($asset->blog_id == $target_blog->id);
+            $clone->id( undef );
+            $clone->blog_id( $target_blog->id );
+            $clone->created_on( $ts );
+            $clone->parent( undef )
+              if ($asset->blog_id != $target_blog->id);
+            $clone->set_tags (@tags);
+            $clone->save
+              or die $clone->errstr;
+        }
+    }
+    my $redirect_url = $app->base
+                     . $app->uri( mode => 'list',
+                                  args => {
+                                      _type => 'asset',
+                                      blog_id => $target_blog->id,
+                                      saved => 1,
+                                  }
+                       );
+    $app->redirect( $redirect_url );
 }
 
 sub _move_assets {
-1
+    my $app = shift;
+    my $class = $app->param( '_type' );
+    return MT->translate( 'Invalid request.' )
+      unless ($class eq 'asset');
+    my $blog = $app->blog
+      or return MT->translate( 'Invalid request.' );
+    my $input = $app->param('itemset_action_input') || '';
+    return MT->translate( 'Invalid request.' ) unless ($input =~ /^\d+$/);
+    my $target_blog = MT::Blog->load( $input );
+    return MT->translate( 'Target required.' ) unless $target_blog;
+    return MT->translate( 'Same Target.' ) if ($blog->id == $target_blog->id);
+    my $user = $app->user;
+    unless ( ( is_user_can( $blog, $user, 'edit_assets' ) )
+          && ( is_user_can( $target_blog, $user, 'upload' ) ) ) {
+        return MT->translate( 'Permission denied.' );
+    }
+    my $plugin = MT->component( 'Transfer' );
+    my @tl = &offset_time_list( time, $blog );
+    my $ts = sprintf "%04d%02d%02d%02d%02d%02d", $tl[ 5 ] + 1900, $tl[ 4 ] + 1, @tl[ 3, 2, 1, 0 ];
+    my @asset_ids = $app->param( 'id' );
+    for my $asset_id ( @asset_ids ) {
+        my $asset = MT->model( 'asset' )->load( { id => $asset_id } );
+        if ( $asset ) {
+            map {
+                $_->remove;
+            } MT::ObjectAsset->load ({ asset_id  => $asset->id });
+            my @tags = $asset->get_tags;
+            $asset->blog_id ($target_blog->id);
+            $asset->set_tags (@tags);
+
+# ƒtƒ@ƒCƒ‹‚ðˆÚ“®‚·‚é
+
+            $asset->modified_on( $ts );
+            $asset->save
+              or die $asset->errstr;
+        }
+    }
+    my $redirect_url = $app->base
+                     . $app->uri( mode => 'list',
+                                  args => {
+                                      _type => $class,
+                                      blog_id => $target_blog->id,
+                                      moved => 1,
+                                  }
+                       );
+    $app->redirect( $redirect_url );
 }
 
 sub _convert_index {
-1
+    my $app = shift;
+    my $class = $app->param( '_type' );
+    return MT->translate( 'Invalid request.' )
+      unless ($class eq 'asset');
+    my $blog = $app->blog
+      or return MT->translate( 'Invalid request.' );
+    my $user = $app->user;
+    unless ( ( is_user_can( $blog, $user, 'edit_assets' ) )
+          && ( is_user_can( $blog, $user, 'edit_templates' ) ) ) {
+        return MT->translate( 'Permission denied.' );
+    }
+    my $plugin = MT->component( 'Transfer' );
+    my $tmpl_class = MT->model('template');
+    (my $site_path = $blog->site_path) =~ s!\\!/!g;
+    my $converted = 0;
+    my @asset_ids = $app->param( 'id' );
+    for my $asset_id ( @asset_ids ) {
+        my $asset = MT->model( 'asset' )->load( { id => $asset_id } );
+        if ( $asset ) {
+            next unless ( $asset->file_ext =~ m/^(html?|mtml|tmpl|php|jsp|asp|css|js)$/i );
+            my $content = do{
+                open(my $fh, '<', $asset->file_path);
+                local $/;
+                <$fh>;
+            };
+            $content =~ s!\t!    !g;
+            $content =~ s!\s+\n!\n!g;
+            (my $outfile = $asset->file_path) =~ s!\\!/!g;
+            $outfile =~ s!$site_path!!;
+            $outfile =~ s!^/!!;
+            my $tmpl = $tmpl_class->new;
+            $tmpl->blog_id($blog->id);
+            $tmpl->text($content);
+            $tmpl->outfile($outfile);
+            $tmpl->type('index');
+            $tmpl->name($asset->label || $asset->file_name);
+            $tmpl->identifier(MT::Util::dirify($asset->file_name) || undef);
+            $tmpl->save;
+
+            $converted = 1;
+            $asset->remove;
+        }
+    }
+    my $redirect_url = $converted
+                     ? $app->base . $app->uri( mode => 'list_template',
+                                               args => {
+                                                   blog_id => $blog->id,
+                                                   converted => 1,
+                                               } )
+                     : $app->base . $app->uri( mode => 'list',
+                                               args => {
+                                                   _type => 'asset',
+                                                   blog_id => $blog->id,
+                                               } );
+    $app->redirect( $redirect_url );
 }
 
 sub doLog {

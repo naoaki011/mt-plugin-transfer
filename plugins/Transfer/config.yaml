@@ -1,7 +1,7 @@
 name: Transfer
 id: Transfer
 l10n_class: Transfer::L10N
-version: 1.0
+version: 1.01
 author_name: naoaki.onozaki
 author_link: http://www.zelazny.mydns.jp/
 description: <__trans phrase="Dupulicate,Transfer and Convert Templates, Entries, Pages and Assets.">
@@ -28,7 +28,7 @@ applications:
 #        convert_to_asset:
 #          label: Convert to Asset
 #          order: 210
-#          code: $Transfer::Transfer::App::CMS::_convert_asset
+#          code: $Transfer::Transfer::App::CMS::_convert_template_asset
 #          permission: edit_assets
 #          condition: $Transfer::Transfer::Util::is_index_template
       entry:
@@ -112,8 +112,9 @@ applications:
 #          no_prompt: 1
 #          permission: upload
 #          condition: sub { return MT->instance->blog; }
-#        convert_to_index:
-#          label: Convert to Index Template
-#          order: 923
-#          code: $Transfer::Transfer::App::CMS::_convert_index
-#          permission: edit_templates
+        convert_to_index:
+          label: Convert to Index Template
+          order: 923
+          code: $Transfer::Transfer::App::CMS::_convert_index
+          permission: edit_templates
+          condition: sub { return MT->instance->blog; }
