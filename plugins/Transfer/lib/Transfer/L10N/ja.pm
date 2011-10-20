@@ -31,7 +31,7 @@ our %Lexicon = (
     'Convert to Index Template' => 'インデックステンプレートに変換',
     'Duplicate Assets' => 'アイテムを複製する',
     'Input BlogID of assets copy to.' => 'アイテムの複製先ブログIDを入力してください',
-    'Move Assets' => 'アイテムを移動する',
+    'Move Assets to Another Blog' => 'アイテムを別ブログに移動する',
     'Input BlogID of assets move for.' => 'アイテムの移動先ブログIDを入力してください',
     'Convert to Asset' => 'アイテムに登録する',
 );

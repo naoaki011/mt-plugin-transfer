@@ -103,15 +103,15 @@ applications:
 #          no_prompt: 1
 #          permission: upload
 #          condition: sub { return MT->instance->blog; }
-#        move_assets:
-#          label: Move Assets
-#          order: 922
-#          code: $Transfer::Transfer::App::CMS::_move_assets
-#          input: 1
-#          input_label: 'Input BlogID of assets move for.'
-#          no_prompt: 1
-#          permission: upload
-#          condition: sub { return MT->instance->blog; }
+        move_assets:
+          label: Move Assets to Another Blog
+          order: 922
+          code: $Transfer::Transfer::App::CMS::_move_assets
+          input: 1
+          input_label: 'Input BlogID of assets move for.'
+          no_prompt: 1
+          permission: upload
+          condition: sub { return MT->instance->blog; }
         convert_to_index:
           label: Convert to Index Template
           order: 923

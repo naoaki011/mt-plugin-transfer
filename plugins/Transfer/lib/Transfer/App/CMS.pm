@@ -91,6 +91,7 @@ sub _convert_template_asset {
             my $fmgr = MT::FileMgr->new( 'Local' )
               or die MT::FileMgr->errstr;
             next unless ( $fmgr->exists( $file ) );
+            #FIX AND Rebuild File.
             my $basename = File::Basename::basename($file);
             my $asset_pkg = MT::Asset->handler_for_file($basename);
             my $ext = ( File::Basename::fileparse( $file, qr/[A-Za-z0-9]+$/ ) )[2];
@@ -375,19 +376,34 @@ sub _move_assets {
     my $plugin = MT->component( 'Transfer' );
     my @tl = &offset_time_list( time, $blog );
     my $ts = sprintf "%04d%02d%02d%02d%02d%02d", $tl[ 5 ] + 1900, $tl[ 4 ] + 1, @tl[ 3, 2, 1, 0 ];
+    (my $site_path = $blog->site_path) =~ s!\\!/!g;
+    (my $target_site_path = $target_blog->site_path) =~ s!\\!/!g;
+    require File::Basename;
     my @asset_ids = $app->param( 'id' );
     for my $asset_id ( @asset_ids ) {
-        my $asset = MT->model( 'asset' )->load( { id => $asset_id } );
+        my $asset = MT->model( 'asset' )->load( { id => $asset_id } )
+          or next;
         if ( $asset ) {
             map {
                 $_->remove;
             } MT::ObjectAsset->load ({ asset_id  => $asset->id });
-            my @tags = $asset->get_tags;
+            (my $file = $asset->file_path) =~ s!\\!/!g;
+            $file =~ s!$site_path!%r!;
+            (my $dest_file = $file) =~ s!%r!$target_site_path!;
+            my $dest_path = File::Basename::dirname( $dest_file );
+            next unless $asset->file_path && -e $asset->file_path;
+            my $fmgr = $blog->file_mgr;
+            if ( !$fmgr->exists($dest_path) ) {
+                $fmgr->mkpath($dest_path)
+                  or die $fmgr->errstr;
+            }
+            $fmgr->rename($asset->file_path, $dest_file)
+              or die $fmgr->errstr;
             $asset->blog_id ($target_blog->id);
+            my @tags = $asset->get_tags;
             $asset->set_tags (@tags);
-
-# ƒtƒ@ƒCƒ‹‚ğˆÚ“®‚·‚é
-
+            $asset->save
+              or die $asset->errstr;
             $asset->modified_on( $ts );
             $asset->save
               or die $asset->errstr;
