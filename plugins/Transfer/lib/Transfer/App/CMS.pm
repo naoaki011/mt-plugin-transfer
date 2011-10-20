@@ -2,7 +2,7 @@ package Transfer::App::CMS;
 
 use strict;
 use warnings;
-use Transfer::Util qw( is_user_can );
+use Transfer::Util qw( is_user_can allowed_filename );
 use MT::Util qw( offset_time_list );
 
 sub _convert_template_global {
@@ -88,6 +88,8 @@ sub _convert_template_asset {
             next unless ($tmpl->type eq 'index');
             next unless ($tmpl->outfile =~ m/\.html?$|\.mtml$|\.tmpl$|\.php$|\.jsp$|\.asp$|\.css$|\.js$/i);
             my $file = File::Spec->catfile($site_path , $tmpl->outfile);
+            my $allowed_filename = allowed_filename($app);
+            next unless ($allowed_filename->($file));
             my $fmgr = MT::FileMgr->new( 'Local' )
               or die MT::FileMgr->errstr;
             next unless ( $fmgr->exists( $file ) );

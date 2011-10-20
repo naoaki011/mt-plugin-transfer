@@ -2,7 +2,7 @@ package Transfer::Util;
 
 use strict;
 use base 'Exporter';
-our @EXPORT_OK = qw( is_user_can );
+our @EXPORT_OK = qw( is_user_can allowed_filename );
 
 sub is_blog_module {
     my $app = MT->instance;
@@ -84,6 +84,44 @@ sub is_index_template {
           unless (($tmpl->blog_id == $blog->id));
     }
     return 1;
+}
+
+sub allowed_filename {
+    my $app = shift;
+    my (@deny_exts, @allow_exts);
+    if ( my $deny_exts = $app->config->DeniedAssetFileExtensions ) {
+        @deny_exts = map {
+            if   ( $_ =~ m/^\./ ) { qr/$_/i }
+            else                  { qr/\.$_/i }
+        } split '\s?,\s?', $deny_exts;
+    }
+    if ( my $allow_exts = $app->config->AssetFileExtensions ) {
+        @allow_exts = map {
+            if   ( $_ =~ m/^\./ ) { qr/$_/i }
+            else                  { qr/\.$_/i }
+        } split '\s?,\s?', $allow_exts;
+    }
+    sub {
+        my ($name) = @_;
+        require File::Basename;
+        return undef if $name =~ /Thumbs\.db/;
+        return undef if $name =~ /\.DS_Store/;
+        return undef if $name =~ /__MACOSX/o;
+        return undef if $name =~ /\/$/;
+        if (@deny_exts) {
+            my @ret = File::Basename::fileparse( $name, @deny_exts );
+            if ( $ret[2] ) {
+                return undef;
+            }
+        }
+        if (@allow_exts) {
+            my @ret = File::Basename::fileparse( $name, @allow_exts );
+            unless ( $ret[2] ) {
+                return undef;
+            }
+        }
+        return 1;
+    };
 }
 
 sub is_user_can {
