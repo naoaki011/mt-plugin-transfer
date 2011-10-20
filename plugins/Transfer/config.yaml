@@ -93,16 +93,16 @@ applications:
             permit_action: create_new_page
             include_all: 1
           condition: sub { return MT->instance->blog; }
-#      asset:
-#        copy_assets:
-#          label: Duplicate Assets
-#          order: 921
-#          code: $Transfer::Transfer::App::CMS::_copy_assets
-#          input: 1
-#          input_label: 'Input BlogID of assets copy to.'
-#          no_prompt: 1
-#          permission: upload
-#          condition: sub { return MT->instance->blog; }
+      asset:
+        copy_assets:
+          label: Duplicate Assets
+          order: 921
+          code: $Transfer::Transfer::App::CMS::_copy_assets
+          input: 1
+          input_label: 'Input BlogID of assets copy to.'
+          no_prompt: 1
+          permission: upload
+          condition: sub { return MT->instance->blog; }
         move_assets_blog:
           label: Move Assets to Another Blog
           order: 922

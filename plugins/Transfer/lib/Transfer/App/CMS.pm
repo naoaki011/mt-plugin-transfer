@@ -202,7 +202,6 @@ sub _copy_entries {
     for my $entry_id ( @entry_ids ) {
         my $entry = MT->model( $class )->load( { id => $entry_id } );
         if ( $entry ) {
-            my @tags = $entry->get_tags;
             my $clone = $entry->clone;
             $clone->title( $plugin->translate('Copy of [_1]', $entry->title) )
               if ($entry->blog_id == $target_blog->id);
@@ -212,6 +211,7 @@ sub _copy_entries {
             $clone->blog_id( $target_blog->id );
             $clone->authored_on( $ts );
             $clone->created_on( $ts );
+            my @tags = $entry->get_tags;
             $clone->set_tags (@tags);
             $clone->save
               or die $clone->errstr;
@@ -323,23 +323,43 @@ sub _copy_assets {
     my $plugin = MT->component( 'Transfer' );
     my @tl = &offset_time_list( time, $target_blog );
     my $ts = sprintf "%04d%02d%02d%02d%02d%02d", $tl[ 5 ] + 1900, $tl[ 4 ] + 1, @tl[ 3, 2, 1, 0 ];
+    (my $site_path = $blog->site_path) =~ s!\\!/!g;
+    (my $target_site_path = $target_blog->site_path) =~ s!\\!/!g;
+    require File::Basename;
+    require File::Copy::Recursive;
     my @asset_ids = $app->param( 'id' );
     for my $asset_id ( @asset_ids ) {
         my $asset = MT->model( 'asset' )->load( { id => $asset_id } );
         if ( $asset ) {
-
-# File‚à•¡»‚·‚é
-#
-
-            my @tags = $asset->get_tags;
+            (my $file = $asset->file_path) =~ s!\\!/!g;
+            $file =~ s!$site_path!%r!;
+            (my $dest_file = $file) =~ s!%r!$target_site_path!;
+            my ($basename, $directory, $ext) =  File::Basename::fileparse( $dest_file, qr/\.[A-Za-z0-9]+$/ );
+            my $clone_name   = ($asset->blog_id == $target_blog->id)
+                             ?  $basename . '_copy' . $ext
+                             : $asset->file_name;
+            my $clone_url    = ($asset->blog_id == $target_blog->id)
+                             ?  File::Spec->catfile($directory ,$clone_name)
+                             : $dest_file;
+            $clone_url =~ s!\\!/!g;
+            $clone_url =~ s!$site_path!%r!;
+            next unless $asset->file_path && -e $asset->file_path;
+            File::Copy::Recursive::fcopy($asset->file_path, File::Spec->catfile($directory ,$clone_name))
+              or die $!;
             my $clone = $asset->clone;
-            $clone->label( $plugin->translate('Copy of [_1]', $asset->label) )
-              if ($asset->blog_id == $target_blog->id);
+            if ($asset->blog_id == $target_blog->id) {
+                $clone->label( $plugin->translate('Copy of [_1]', $asset->label) );
+                $clone->file_name( $clone_name );
+                $clone->file_path( $clone_url );
+                $clone->url( $clone_url );
+                $clone->created_on( $ts );
+            }
+            else {
+                $clone->parent( undef );
+            }
             $clone->id( undef );
             $clone->blog_id( $target_blog->id );
-            $clone->created_on( $ts );
-            $clone->parent( undef )
-              if ($asset->blog_id != $target_blog->id);
+            my @tags = $asset->get_tags;
             $clone->set_tags (@tags);
             $clone->save
               or die $clone->errstr;
