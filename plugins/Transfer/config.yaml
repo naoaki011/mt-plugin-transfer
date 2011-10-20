@@ -103,7 +103,7 @@ applications:
 #          no_prompt: 1
 #          permission: upload
 #          condition: sub { return MT->instance->blog; }
-        move_assets:
+        move_assets_blog:
           label: Move Assets to Another Blog
           order: 922
           code: $Transfer::Transfer::App::CMS::_move_assets
