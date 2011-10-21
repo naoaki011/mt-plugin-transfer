@@ -149,16 +149,107 @@ sub _convert_entry_page {
     my $to_type = ($app->param('_type') eq 'page') ? 'entry' : 'page';
     return MT->translate( 'cannot make entry on website.' )
       if ((! $blog->parent_id)&&($to_type eq 'entry'));
+    my $site_url = $blog->site_url;
     my @obj_ids = $app->param('id');
     my @objects;
     my $filter_val;
     if (@obj_ids) {
         foreach my $obj_id (@obj_ids) {
             my $object = MT->model($class)->load($obj_id);
+            my $arch = ($object->class eq 'entry')
+                     ? $blog->archive_url || ''
+                     : $site_url;
+            $arch .= '/' unless $arch =~ m!/$!;
+            my $archive_filepath = $arch . $object->archive_file;
+            my $file_path = File::Spec::Unix->abs2rel($archive_filepath, $site_url);
+            my $directory = File::Basename::dirname($file_path);
+            # FIX IT If has BlogArchivePath
+            my @dirs = File::Spec->splitdir($directory);
+            my $category_class = ($object->class eq 'entry')
+                               ? 'folder'
+                               : 'category';
+            my $category_parent = 0;
+            my $category_obj;
+            if ($category_class eq 'folder') {
+                foreach my $dir (@dirs) {
+                    my $category = MT->model( 'folder' )->load({
+                        basename => $dir,
+                        class => 'folder',
+                        parent => $category_parent
+                    }) || MT->model( 'folder' )->new;
+                    if (! $category->id) {
+                        $category->label($dir);
+                        $category->basename($dir);
+                        $category->author_id($user->id);
+                        $category->blog_id($blog_id);
+                        $category->class('folder');
+                        $category->parent($category_parent);
+                        $category->save or die;
+                    }
+                    $category_parent = $category->id;
+                    $category_obj = $category;
+                }
+            }
+            else {
+                require MT::TemplateMap;
+                my $mapping = MT::TemplateMap->load({
+                        blog_id => $blog_id,
+                        archive_type => 'Individual',
+                        is_preferred => 1
+                });
+                if ($mapping->file_template =~ m!^%(-|_|)c/!) {
+                    # FIX Individual Archive Mapping is CategoryBase.
+                    foreach my $dir (@dirs) {
+                        my $category = MT->model( 'category' )->load({
+                            basename => $dir,
+                            class => 'category',
+                            parent => $category_parent
+                        }) || MT->model( 'category' )->new;
+                        if (! $category->id) {
+                            $category->label($dir);
+                            $category->basename($dir);
+                            $category->author_id($user->id);
+                            $category->blog_id($blog_id);
+                            $category->class('category');
+                            $category->parent($category_parent);
+                            $category->save or die;
+                        }
+                        $category_parent = $category->id;
+                        $category_obj = $category;
+                    }
+                }
+                else {
+                    # FIX Individual Archive Mapping is not CategoryBase.
+                    foreach my $dir (@dirs) {
+                        my $category = MT->model( 'category' )->load({
+                            basename => $dir,
+                            class => 'category',
+                            parent => $category_parent
+                        }) || MT->model( 'category' )->new;
+                        if (! $category->id) {
+                            $category->label($dir);
+                            $category->basename($dir);
+                            $category->author_id($user->id);
+                            $category->blog_id($blog_id);
+                            $category->class('category');
+                            $category->parent($category_parent);
+                            $category->save or die;
+                        }
+                        $category_parent = $category->id;
+                        $category_obj = $category;
+                    }
+                }
+            }
             $object->class($to_type);
-            $object->save;
+            $object->save or die;
             map {
+                if (($_->is_primary == 1) && ($category_obj)) {
+                    $_->category_id($category_obj->id);
+                    $_->save or die;
+                }
+                else {
                 $_->remove;
+                }
             } MT::Placement->load({ entry_id => $obj_id });
             $filter_val .= "&filter_val=$obj_id";
         }
